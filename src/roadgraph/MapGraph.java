@@ -13,11 +13,15 @@ import java.util.ListIterator;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.Queue;
+import java.util.Random;
 import java.util.LinkedList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 
 import geography.GeographicPoint;
@@ -36,6 +40,7 @@ public class MapGraph {
 	private HashMap<GeographicPoint,MapNode> vertices;
 	private List<MapEdge> edges;
 	private HashSet<MapNode> nodesVisited;
+	private Double pathDistance=new Double(0.0);
 
 	/** 
 	 * Create a new empty MapGraph 
@@ -188,6 +193,7 @@ public class MapGraph {
 		return constructPath(sNode, gNode, parentMap);
 	}
 	
+	
 	private List<GeographicPoint> constructPath(MapNode start, MapNode goal,
 			HashMap<MapNode, MapNode> parentMap)
 	{
@@ -283,8 +289,9 @@ public class MapGraph {
 				//
 
 				HashMap<MapNode, MapNode> parentMap = new HashMap<MapNode, MapNode>();
+				
 				boolean found = dijkstraSearch(sNode, gNode, parentMap,nodeSearched);
-
+				//System.out.println("found: "+found);
 				if (!found) {
 					System.out.println("No path exists");
 					return null;
@@ -309,7 +316,7 @@ public class MapGraph {
 		MapDistance dist=new MapDistance();
 		dist.setCurrentDistance(0.0);
 		dist.setHeuristicEstimate(0.0);
-		System.out.println("priority "+dist.getPriority());
+		//System.out.println("priority "+dist.getPriority());
 		start.setDistances(dist);
 		
 		queue.add(start);
@@ -359,6 +366,13 @@ public class MapGraph {
 								next.setDistances(dist1);
 								//System.out.println("curr dis"+next.getDistances().getCurrentDistance());
 								//System.out.println("heu dis"+next.getDistances().getHeuristicEstimate());
+								//System.out.println(dist1.getCurrentDistance());
+								//System.out.println("path Distance "+pathDistance);
+								
+								pathDistance+=dist1.getCurrentDistance();
+								
+								//System.out.println("path Distance 2 "+pathDistance);
+								
 								parentMap.put(next, curr);
 								queue.add(next);
 							}
@@ -368,7 +382,7 @@ public class MapGraph {
 			}
 		}		
 		//System.out.println("visited "+visited.size());
-		nodesVisited=visited;
+		nodesVisited.addAll(visited);
 		return found;
 	}	
 	/** Find the path from start to goal using A-Star search
@@ -500,9 +514,10 @@ public class MapGraph {
 				}
 			}
 		}		
-		nodesVisited=visited;
+		nodesVisited.addAll(visited);
 		return found;
 	}
+	
 	private void printVisited(){
 		for(MapNode node:nodesVisited)
 		{
@@ -513,10 +528,76 @@ public class MapGraph {
 		return nodesVisited.size();
 	}
 	
+	public List<GeographicPoint> greedyDijkstra(List<GeographicPoint> cities,GeographicPoint start) {
+		// Dummy variable for calling the search algorithms
+		// You do not need to change this method.
+        Consumer<GeographicPoint> temp = (x) -> {};
+        return greedyDijkstra(cities, start,temp);
+	}
+	
+	/** Find the path from start to goal using Dijkstra's algorithm
+	 * 
+	 * @param start The starting location
+	 * @param goal The goal location
+	 * @param nodeSearched A hook for visualization.  See assignment instructions for how to use it.
+	 * @return The list of intersections that form the shortest path from 
+	 *   start to goal (including both start and goal).
+	 */
+	public List<GeographicPoint> greedyDijkstra(List<GeographicPoint> cities,GeographicPoint start,
+			Consumer<GeographicPoint> nodeSearched)
+	{
+		// TODO: Implement this method in WEEK 3
+		
+		List<GeographicPoint> bestPath = new ArrayList<GeographicPoint>();
+		//System.out.println(start);
+		GeographicPoint currCity= start;
+		
+		//List<GeographicPoint> citiesToVisit = cities;
+		
+		cities.remove(start);
+		bestPath.add(currCity);
+		//System.out.println(citiesToVisit.size());
+		while(!cities.isEmpty())
+		{
+			//System.out.println(citiesToVisit.size());
+			GeographicPoint nextCity=currCity;
+			Double pathLength=0.0;
+			//System.out.println("path length "+pathLength);
+			//System.out.println("path distance "+pathDistance);
+			//System.out.println(citiesToVisit.toString());
+			for(int i=0;i<cities.size();i++)
+			{
+				//System.out.println(citiesToVisit.size());
+				dijkstra(nextCity,cities.get(i));
+				if(pathLength<pathDistance)
+				{
+					nextCity=cities.get(i);
+					//break;
+				}
+				pathLength=pathDistance;
+			}
+			
+			//System.out.println("before removed "+cities.size());
+			bestPath.add(nextCity);
+			currCity=nextCity;
+			//System.out.println("index "+cities.indexOf(currCity));
+			//System.out.println("contains "+cities.contains(currCity));
+			cities.remove(currCity);
+			//System.out.println("removed "+cities.remove(currCity));
+			//System.out.println(cities.toString());
+			//System.out.println("after removed "+cities.size());
+		
+			
+		}
+				
+		return bestPath;
+	}
 	
 	public static void main(String[] args)
 	{
+		
 		System.out.print("Making a new map...");
+		 
 		MapGraph theMap = new MapGraph();
 		System.out.print("DONE. \nLoading the map...");
 		GraphLoader.loadRoadMap("data/testdata/simpletest.map", theMap);
@@ -534,26 +615,73 @@ public class MapGraph {
 		// You can use this method for testing.  
 		
 		//Use this code in Week 3 End of Week Quiz
-		MapGraph theMap1 = new MapGraph();
-		System.out.print("DONE. \nLoading the map...");
-		GraphLoader.loadRoadMap("data/maps/utc.map", theMap1);
-		System.out.println("DONE.");
+		//MapGraph theMap1 = new MapGraph();
+		//System.out.print("DONE. \nLoading the map...");
+		//GraphLoader.loadRoadMap("data/maps/utc.map", theMap1);
+		//System.out.println("DONE.");
 
-		GeographicPoint start1 = new GeographicPoint(32.8648772, -117.2254046);
-		GeographicPoint end = new GeographicPoint(32.8660691, -117.217393);
+		//GeographicPoint start1 = new GeographicPoint(32.8648772, -117.2254046);
+		//GeographicPoint end = new GeographicPoint(32.8660691, -117.217393);
 		
 		
-		//List<GeographicPoint> route = theMap1.dijkstra(start1,end);
+		//List<GeographicPoint> route = theMap1.greedydijkstra(start1,end);
 		//theMap1.printVisited();
 		//System.out.println("route "+route);
 		//System.out.println("count Visited "+theMap1.countVisited());
-		List<GeographicPoint> route2 = theMap1.aStarSearch(start1,end);
+		//List<GeographicPoint> route2 = theMap1.aStarSearch(start1,end);
 		//theMap1.printVisited();
 		
-		System.out.println("count Visited "+theMap1.countVisited());
-		System.out.println("route2 "+route2);
+		//System.out.println("count Visited "+theMap1.countVisited());
+		//System.out.println("route2 "+route2);
+		MapGraph theMap2 = new MapGraph();
+		System.out.print("DONE. \nLoading the map...");
+		GraphLoader.loadRoadMap("data/maps/new_york.map", theMap2);
+		System.out.println("DONE.");
+/*
+		Set vertices=new HashSet<GeographicPoint>();
+		List<GeographicPoint> newVertices=new ArrayList<GeographicPoint>();
+		vertices=theMap2.getVertices();
+		int i=0;
+		while(i<10)
+		{
+		Object[] v=vertices.toArray();
+		Object key = v[new Random().nextInt(v.length)];
+				
+		newVertices.add((GeographicPoint)key);
+			System.out.println(i+" "+(GeographicPoint)key);
+			i++;
+		}
 		
 		
-	}
-	
+		Object[] v1=newVertices.toArray();
+		Object key1 = v1[new Random().nextInt(v1.length)];
+	*/
+	 	
+	 
+		List<GeographicPoint> newVertices=new ArrayList<GeographicPoint>();
+		newVertices.add(new GeographicPoint(40.7584291,-73.9926299));
+		newVertices.add(new GeographicPoint(40.7540684,-73.995845));		
+		newVertices.add(new GeographicPoint(40.7576858,-74.0006278));
+		newVertices.add(new GeographicPoint(40.7595167,-73.9992636));		
+		newVertices.add(new GeographicPoint(40.757565,-73.996758));
+		
+		Object[] v1=newVertices.toArray();
+		Object key1 = v1[new Random().nextInt(v1.length)];
+		
+		GeographicPoint startPoint=(GeographicPoint)key1;
+		//System.out.println("check if contains "+newVertices.contains(startPoint));
+		List<GeographicPoint> path=theMap2.greedyDijkstra(newVertices,startPoint);
+		
+		theMap2.printVisited();
+		System.out.println("Start "+startPoint);
+		System.out.println("greedy algorithm best path "+path);
+		System.out.println("path length "+path.size());
+		for(int i=0;i<path.size();i++)
+		{
+			System.out.println(path.get(i));
+		}
+		System.out.println("count Visited "+theMap2.countVisited());
+		System.out.println("number of vertices "+theMap2.getNumVertices());
+		System.out.println("path distance "+theMap2.pathDistance);
+	}	
 }
